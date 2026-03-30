@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AIR Ajustadores – Informe de Inspección</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14; --surface: #161a22; --card: #1c2130; --border: #2a3045;
+    --accent: #e8a020; --accent2: #f0c060; --text: #e8eaf0; --muted: #7a8299;
+    --success: #2dd4a0; --error: #f05060; --warn: #f08030;
+    --radius: 12px; --font-body: 'Sora', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 120px; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 14px; }
+  .logo-badge { width: 42px; height: 42px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 600; color: #0d0f14; font-size: 13px; letter-spacing: -0.5px; flex-shrink: 0; }
+  .header-text h1 { font-size: 15px; font-weight: 700; }
+  .header-text p { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .progress-bar-wrap { background: var(--surface); padding: 0 20px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 75px; z-index: 99; }
+  .progress-steps { display: flex; gap: 6px; margin-bottom: 8px; }
+  .step-dot { flex: 1; height: 3px; border-radius: 99px; background: var(--border); transition: background .3s; }
+  .step-dot.active { background: var(--accent); }
+  .step-dot.done { background: var(--success); }
+  .progress-label { font-size: 10px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; }
+  .section { display: none; padding: 20px; animation: fadeSlide .3s ease; }
+  .section.active { display: block; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+  .section-title { font-size: 11px; font-family: var(--font-mono); color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: attr(data-num); background: var(--accent); color: #0d0f14; font-size: 10px; font-weight: 600; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+  label .req { color: var(--accent); margin-left: 2px; }
+  input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="datetime-local"], select, textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: 15px; padding: 13px 15px; outline: none; transition: border-color .2s, box-shadow .2s; -webkit-appearance: none; appearance: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,160,32,.15); }
+  textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8299' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .checklist-filter { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-btn { padding: 7px 14px; border-radius: 99px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--muted); transition: all .2s; }
+  .filter-btn.active-fire { background: rgba(240,80,48,.15); border-color: #f05030; color: #f07060; }
+  .filter-btn.active-agua { background: rgba(48,160,240,.15); border-color: #30a0f0; color: #60c0f8; }
+  .filter-btn.active-robo { background: rgba(160,100,240,.15); border-color: #a064f0; color: #c090f8; }
+  .filter-btn.active-all { background: rgba(232,160,32,.15); border-color: var(--accent); color: var(--accent); }
+  .cat-block { margin-bottom: 20px; }
+  .cat-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; cursor: pointer; user-select: none; }
+  .cat-icon { font-size: 16px; }
+  .cat-name { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .8px; flex: 1; }
+  .cat-count { font-family: var(--font-mono); font-size: 11px; background: var(--card); color: var(--accent); padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); }
+  .cat-chevron { color: var(--muted); font-size: 12px; transition: transform .2s; }
+  .cat-block.collapsed .cat-chevron { transform: rotate(-90deg); }
+  .cat-items { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+  .cat-block.collapsed .cat-items { display: none; }
+  .check-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 14px; border-top: 1px solid var(--border); transition: background .15s; }
+  .check-row:first-child { border-top: none; }
+  .check-row:hover { background: rgba(255,255,255,.02); }
+  .check-box { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; border: 2px solid var(--border); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; margin-top: 1px; }
+  .check-box.checked { background: var(--error); border-color: var(--error); }
+  .check-box.checked::after { content: '✕'; color: white; font-size: 13px; font-weight: 700; }
+  .check-content { flex: 1; }
+  .check-label { font-size: 14px; color: var(--text); line-height: 1.3; cursor: pointer; }
+  .check-label.checked { color: var(--error); }
+  .check-obs { display: none; margin-top: 8px; }
+  .check-obs.show { display: block; }
+  .check-obs input { background: var(--surface); border-color: rgba(240,80,96,.3); font-size: 13px; padding: 9px 12px; border-radius: 8px; }
+  .check-obs input:focus { border-color: var(--error); box-shadow: 0 0 0 3px rgba(240,80,96,.12); }
+  .check-tags { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .tag { font-size: 9px; font-family: var(--font-mono); padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; }
+  .tag-fire { background: rgba(240,80,48,.12); color: #f07060; border: 1px solid rgba(240,80,48,.2); }
+  .tag-agua { background: rgba(48,160,240,.12); color: #60c0f8; border: 1px solid rgba(48,160,240,.2); }
+  .tag-robo { background: rgba(160,100,240,.12); color: #c090f8; border: 1px solid rgba(160,100,240,.2); }
+  .affected-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(240,80,96,.1); border: 1px solid rgba(240,80,96,.25); color: var(--error); padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600; margin-bottom: 16px; font-family: var(--font-mono); }
+  .detalle-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; position: relative; }
+  .detalle-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-bottom: 10px; letter-spacing: 1px; }
+  .detalle-item textarea { background: var(--surface); border-color: transparent; font-size: 14px; padding: 10px 12px; min-height: 80px; }
+  .btn-remove { position: absolute; top: 12px; right: 12px; background: rgba(240,80,96,.15); border: none; color: var(--error); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .btn-add { width: 100%; background: transparent; border: 1px dashed var(--border); color: var(--muted); padding: 13px; border-radius: var(--radius); cursor: pointer; font-family: var(--font-body); font-size: 13px; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); }
+  .photo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+  .photo-thumb { aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--card); border: 1px solid var(--border); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-photo { position: absolute; top: 4px; right: 4px; background: rgba(240,80,96,.85); color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .photo-upload-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--card); border: 1px dashed var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; color: var(--muted); font-size: 12px; text-align: center; transition: all .2s; }
+  .photo-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .photo-upload-btn span { font-size: 24px; }
+  #photo-input { display: none; }
+  .canvas-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  canvas { display: block; width: 100%; touch-action: none; cursor: crosshair; }
+  .canvas-controls { display: flex; gap: 8px; padding: 8px; background: var(--surface); border-top: 1px solid var(--border); }
+  .btn-clear-sig { flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: var(--font-body); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 14px 20px; display: flex; gap: 10px; z-index: 200; }
+  .btn { flex: 1; padding: 15px; border-radius: var(--radius); font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-back { background: var(--card); color: var(--muted); flex: 0.6; }
+  .btn-next { background: var(--accent); color: #0d0f14; }
+  .btn-submit { background: var(--success); color: #0d0f14; }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .resumen-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .resumen-section-title { background: var(--surface); padding: 10px 14px; font-size: 10px; font-family: var(--font-mono); color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .resumen-row { display: flex; padding: 10px 14px; border-top: 1px solid var(--border); gap: 12px; }
+  .resumen-key { font-size: 11px; color: var(--muted); min-width: 130px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .resumen-val { font-size: 13px; color: var(--text); word-break: break-word; }
+  .resumen-val.affected { color: var(--error); font-weight: 600; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--success); color: #0d0f14; padding: 12px 22px; border-radius: 99px; font-size: 13px; font-weight: 600; z-index: 9999; transition: transform .4s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--error); color: white; }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(13,15,20,.3); border-top-color: #0d0f14; border-radius: 50%; animation: spin .6s linear infinite; display: none; }
+  .spinner.show { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .info-box { background: rgba(232,160,32,.08); border: 1px solid rgba(232,160,32,.25); border-radius: var(--radius); padding: 14px; font-size: 12px; color: var(--accent2); line-height: 1.6; margin-bottom: 16px; }
+  .info-box strong { display: block; margin-bottom: 4px; color: var(--accent); }
+  .email-config { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .config-title { font-size: 11px; font-family: var(--font-mono); color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo-badge">AIR</div>
+  <div class="header-text"><h1>Informe de Inspección</h1><p>AJUSTADORES · SURVEYORS</p></div>
+</div>
+<div class="progress-bar-wrap">
+  <div class="progress-steps">
+    <div class="step-dot active" id="dot-0"></div><div class="step-dot" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div><div class="step-dot" id="dot-3"></div>
+    <div class="step-dot" id="dot-4"></div><div class="step-dot" id="dot-5"></div>
+    <div class="step-dot" id="dot-6"></div>
+  </div>
+  <div class="progress-label" id="step-label">Paso 1 de 7 — Datos Generales</div>
+</div>
+<div class="toast" id="toast"></div><div class="section active" id="section-0">
+  <div class="section-title" data-num="1">Datos Generales</div>
+  <div class="field"><label>Compañía Aseguradora <span class="req">*</span></label><input type="text" id="compania" placeholder="Ej. Assa, Mapfre, Nacional..."></div>
+  <div class="field"><label>Asegurado <span class="req">*</span></label><input type="text" id="asegurado" placeholder="Nombre completo del asegurado"></div>
+  <div class="field"><label>Número de Póliza <span class="req">*</span></label><input type="text" id="poliza" placeholder="Ej. POL-2024-001234"></div>
+  <div class="field-row">
+    <div class="field"><label>Fecha de Asignación</label><input type="date" id="fecha_asignacion"></div>
+    <div class="field"><label>Fecha de Inspección</label><input type="date" id="fecha_inspeccion"></div>
+  </div>
+  <div class="field"><label>Dirección <span class="req">*</span></label><textarea id="direccion" placeholder="Dirección completa del riesgo..." rows="3"></textarea></div>
+  <div class="field"><label>Nombre del Local / Propiedad</label><input type="text" id="nombre_local" placeholder="Ej. Restaurante La Marea, Apto 4B..."></div>
+</div>
+<div class="section" id="section-1">
+  <div class="section-title" data-num="2">Datos del Siniestro</div>
+  <div class="field"><label>Fecha y Hora del Siniestro</label><input type="datetime-local" id="fecha_siniestro"></div>
+  <div class="field">
+    <label>Riesgo Reclamado <span class="req">*</span></label>
+    <select id="riesgo_reclamado">
+      <option value="">— Seleccionar —</option>
+      <option>Incendio</option><option>Incendio con Humo</option>
+      <option>Inundación / Agua</option><option>Robo / Hurto</option>
+      <option>Rotura de Vidrios</option><option>Daños por Tormenta / Viento</option>
+      <option>Responsabilidad Civil</option><option>Accidente de Tránsito</option>
+      <option>Daños Eléctricos</option><option>Terremoto</option><option>Otro</option>
+    </select>
+  </div>
+  <div class="field" id="riesgo-otro-wrap" style="display:none"><label>Especificar Riesgo</label><input type="text" id="riesgo_otro" placeholder="Describir el riesgo..."></div>
+  <div class="field"><label>Causa del Siniestro <span class="req">*</span></label><textarea id="causa" placeholder="Describe la causa del siniestro..." rows="4"></textarea></div>
+  <div class="field"><label>Reclamante Afectado (RC)</label><input type="text" id="reclamante" placeholder="Nombre del reclamante afectado"></div>
+</div>
+<div class="section" id="section-2">
+  <div class="section-title" data-num="3">Inspector / Contacto</div>
+  <div class="field"><label>Atendidos por <span class="req">*</span></label><input type="text" id="atendidos_por" placeholder="Nombre de quien atendió"></div>
+  <div class="field"><label>Cargo</label><input type="text" id="cargo" placeholder="Ej. Gerente, Propietario..."></div>
+  <div class="field-row">
+    <div class="field"><label>Teléfono</label><input type="tel" id="telefono" placeholder="6000-0000"></div>
+    <div class="field"><label>Email Contacto</label><input type="email" id="email_contacto" placeholder="contacto@mail.com"></div>
+  </div>
+  <div class="section-title" style="margin-top:24px" data-num="3b">Inspector AIR</div>
+  <div class="field"><label>Inspector Responsable <span class="req">*</span></label><input type="text" id="inspector_nombre" placeholder="Tu nombre completo"></div>
+  <div class="field"><label>Tu Email <span class="req">*</span></label><input type="email" id="inspector_email" placeholder="inspector@airajustadores.com"></div>
+</div>
+<div class="section" id="section-3">
+  <div class="section-title" data-num="4">Checklist de Daños</div>
+  <div class="info-box"><strong>📋 Instrucciones</strong>Marca los ítems que resultaron <strong>afectados</strong>. Filtra por tipo de siniestro para ver los ítems más relevantes.</div>
+  <div class="checklist-filter">
+    <button class="filter-btn active-all" onclick="filterChecklist('all')" id="filter-all">🔍 Todos</button>
+    <button class="filter-btn" onclick="filterChecklist('fire')" id="filter-fire">🔥 Incendio</button>
+    <button class="filter-btn" onclick="filterChecklist('agua')" id="filter-agua">💧 Agua</button>
+    <button class="filter-btn" onclick="filterChecklist('robo')" id="filter-robo">🔓 Robo</button>
+  </div>
+  <div id="affected-summary" style="display:none"><div class="affected-pill"><span>⚠</span> <span id="affected-count">0</span> ítem(s) afectado(s)</div></div>
+  <div id="checklist-container"></div>
+</div>
+<div class="section" id="section-4">
+  <div class="section-title" data-num="5">Detalles de la Inspección</div>
+  <div id="detalles-container"></div>
+  <button class="btn-add" onclick="addDetalle()"><span>＋</span> Agregar punto</button>
+</div>
+<div class="section" id="section-5">
+  <div class="section-title" data-num="6">Evidencia Fotográfica</div>
+  <div class="photo-grid" id="photo-grid"></div>
+  <label class="photo-upload-btn" for="photo-input"><span>📷</span> Tomar foto / Seleccionar imagen</label>
+  <input type="file" id="photo-input" accept="image/*" multiple capture="environment">
+  <div class="section-title" style="margin-top:28px" data-num="6b">Firma del Inspector</div>
+  <div class="canvas-wrap">
+    <canvas id="sig-canvas" height="160"></canvas>
+    <div class="canvas-controls"><button class="btn-clear-sig" onclick="clearSig()">🗑 Borrar firma</button></div>
+  </div>
+</div>
+<div class="section" id="section-6">
+  <div class="section-title" data-num="7">Revisar y Enviar</div>
+  <div class="info-box"><strong>📋 Revisión final</strong>Verifica los datos antes de enviar.</div>
+  <div class="email-config">
+    <div class="config-title">📨 Destino del Informe</div>
+    <div class="field"><label>Email de la Oficina AIR <span class="req">*</span></label><input type="email" id="email_oficina" value="info@airajustadores.com"></div>
+  </div>
+  <div id="resumen-container"></div>
+</div>
+<div class="bottom-nav">
+  <button class="btn btn-back" id="btn-back" onclick="navigate(-1)" style="display:none">← Atrás</button>
+  <button class="btn btn-next" id="btn-next" onclick="navigate(1)">Continuar →</button>
+  <button class="btn btn-submit" id="btn-submit" onclick="submitForm()" style="display:none">
+    <div class="spinner" id="spinner"></div>
+    <span id="submit-label">✈ Enviar Informe</span>
+  </button>
+</div><script>
+const CHECKLIST = [
+  { id: 'estructural', icon: '🏗', name: 'Estructura', items: [
+    { id: 'techo_losa', label: 'Techo / Losa', tags: ['fire','agua'] },
+    { id: 'techo_cielo', label: 'Cielo raso / Plafón', tags: ['fire','agua'] },
+    { id: 'paredes_ext', label: 'Paredes exteriores', tags: ['fire','agua','robo'] },
+    { id: 'paredes_int', label: 'Paredes interiores / Tabiques', tags: ['fire','agua'] },
+    { id: 'columnas_vigas', label: 'Columnas / Vigas', tags: ['fire'] },
+    { id: 'puertas_ext', label: 'Puertas exteriores', tags: ['fire','robo'] },
+    { id: 'puertas_int', label: 'Puertas interiores', tags: ['fire','robo'] },
+    { id: 'ventanas', label: 'Ventanas / Marcos', tags: ['fire','agua','robo'] },
+    { id: 'vidrios', label: 'Vidrios / Cristales', tags: ['fire','robo'] },
+    { id: 'escaleras', label: 'Escaleras', tags: ['fire','agua'] },
+    { id: 'verjas_rejas', label: 'Verjas / Rejas de seguridad', tags: ['robo'] },
+    { id: 'candados', label: 'Candados / Cerraduras forzadas', tags: ['robo'] }
+  ]},
+  { id: 'acabados', icon: '🪟', name: 'Acabados y Revestimientos', items: [
+    { id: 'pisos_ceramica', label: 'Pisos (cerámica / porcelana)', tags: ['fire','agua'] },
+    { id: 'pisos_madera', label: 'Pisos (madera / laminado)', tags: ['fire','agua'] },
+    { id: 'pisos_vinilo', label: 'Pisos (vinilo / alfombra)', tags: ['fire','agua'] },
+    { id: 'pintura_int', label: 'Pintura interior', tags: ['fire','agua'] },
+    { id: 'pintura_ext', label: 'Pintura exterior', tags: ['fire','agua'] },
+    { id: 'enchapes', label: 'Enchapes / Azulejos', tags: ['fire','agua'] },
+    { id: 'zocalos', label: 'Zócalos / Molduras', tags: ['fire','agua'] },
+    { id: 'fascia', label: 'Fascia / Canales de techo', tags: ['agua'] }
+  ]},
+  { id: 'instalaciones', icon: '⚡', name: 'Instalaciones', items: [
+    { id: 'elect_panel', label: 'Panel / Breakers eléctricos', tags: ['fire','agua'] },
+    { id: 'elect_cableado', label: 'Cableado eléctrico', tags: ['fire','agua'] },
+    { id: 'elect_tomacorr', label: 'Tomacorrientes / Apagadores', tags: ['fire','agua'] },
+    { id: 'elect_luminaria', label: 'Luminarias / Lámparas', tags: ['fire','agua','robo'] },
+    { id: 'plomeria_tuber', label: 'Tuberías / Plomería', tags: ['agua'] },
+    { id: 'plomeria_sanit', label: 'Sanitarios / Lavamanos', tags: ['agua'] },
+    { id: 'plomeria_cist', label: 'Cisterna / Tanque de agua', tags: ['agua'] },
+    { id: 'ac_equipos', label: 'Equipos de A/C', tags: ['fire','agua','robo'] },
+    { id: 'ac_ductos', label: 'Ductos de A/C / Ventilación', tags: ['fire','agua'] },
+    { id: 'gas_tuberias', label: 'Tuberías de gas', tags: ['fire'] },
+    { id: 'alarma', label: 'Sistema de alarma / CCTV', tags: ['fire','robo'] },
+    { id: 'sprinklers', label: 'Rociadores / Sprinklers', tags: ['fire'] }
+  ]},
+  { id: 'mobiliario', icon: '🪑', name: 'Mobiliario y Contenido', items: [
+    { id: 'muebles_sala', label: 'Muebles de sala / Recepción', tags: ['fire','agua','robo'] },
+    { id: 'muebles_ofic', label: 'Mobiliario de oficina / Escritorios', tags: ['fire','agua','robo'] },
+    { id: 'equipos_comp', label: 'Computadoras / Equipos de cómputo', tags: ['fire','agua','robo'] },
+    { id: 'equipos_elec', label: 'Electrodomésticos / Equipos', tags: ['fire','agua','robo'] },
+    { id: 'equipos_cocina', label: 'Equipo de cocina / Restaurante', tags: ['fire','agua','robo'] },
+    { id: 'inventario', label: 'Inventario / Mercancía', tags: ['fire','agua','robo'] },
+    { id: 'caja_valores', label: 'Caja fuerte / Valores', tags: ['robo'] },
+    { id: 'documentos', label: 'Documentos / Archivos', tags: ['fire','agua','robo'] },
+    { id: 'ropa_textiles', label: 'Ropa / Textiles', tags: ['fire','agua','robo'] },
+    { id: 'obras_arte', label: 'Obras de arte / Decoración valiosa', tags: ['fire','agua','robo'] }
+  ]},
+  { id: 'exteriores', icon: '🌳', name: 'Áreas Exteriores', items: [
+    { id: 'ext_cerca', label: 'Cerca / Muro perimetral', tags: ['robo'] },
+    { id: 'ext_porton', label: 'Portón / Acceso vehicular', tags: ['robo'] },
+    { id: 'ext_garaje', label: 'Garaje / Estacionamiento', tags: ['fire','agua'] },
+    { id: 'ext_jardin', label: 'Jardines / Áreas verdes', tags: ['agua'] },
+    { id: 'ext_letrero', label: 'Letrero / Rótulo comercial', tags: ['fire','robo'] },
+    { id: 'ext_tanque', label: 'Tanque de gas / Depósitos ext.', tags: ['fire'] }
+  ]}
+];
+
+let currentStep = 0;
+const totalSteps = 7;
+let photos = [];
+let detalleCount = 0;
+let sigCanvas, sigCtx, isDrawing = false, lastX = 0, lastY = 0;
+const stepLabels = ['Datos Generales','Datos del Siniestro','Inspector / Contacto','Checklist de Daños','Detalles de Inspección','Evidencia y Firma','Revisar y Enviar'];
+
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha_inspeccion').value = today;
+  document.getElementById('fecha_asignacion').value = today;
+  buildChecklist();
+  addDetalle(); addDetalle(); addDetalle();
+  initCanvas();
+  document.getElementById('photo-input').addEventListener('change', handlePhotos);
+  document.getElementById('riesgo_reclamado').addEventListener('change', function() {
+    document.getElementById('riesgo-otro-wrap').style.display = this.value === 'Otro' ? 'block' : 'none';
+  });
+});
+
+function buildChecklist() {
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+  CHECKLIST.forEach(cat => {
+    const block = document.createElement('div');
+    block.className = 'cat-block';
+    block.id = `cat-${cat.id}`;
+    block.innerHTML = `
+      <div class="cat-header" onclick="toggleCat('${cat.id}')">
+        <span class="cat-icon">${cat.icon}</span>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-count" id="count-${cat.id}">0</span>
+        <span class="cat-chevron">▾</span>
+      </div>
+      <div class="cat-items" id="items-${cat.id}">
+        ${cat.items.map(item => `
+          <div class="check-row" id="row-${item.id}" data-tags="${item.tags.join(',')}">
+            <div class="check-box" id="cb-${item.id}" onclick="toggleCheck('${item.id}')"></div>
+            <div class="check-content">
+              <div class="check-label" id="lbl-${item.id}" onclick="toggleCheck('${item.id}')">${item.label}</div>
+              <div class="check-tags">
+                ${item.tags.includes('fire') ? '<span class="tag tag-fire">🔥 Incendio</span>' : ''}
+                ${item.tags.includes('agua') ? '<span class="tag tag-agua">💧 Agua</span>' : ''}
+                ${item.tags.includes('robo') ? '<span class="tag tag-robo">🔓 Robo</span>' : ''}
+              </div>
+              <div class="check-obs" id="obs-${item.id}">
+                <input type="text" placeholder="Observación (opcional)..." id="obsval-${item.id}">
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    container.appendChild(block);
+  });
+}
+
+function toggleCheck(id) {
+  const cb = document.getElementById(`cb-${id}`);
+  const lbl = document.getElementById(`lbl-${id}`);
+  const obs = document.getElementById(`obs-${id}`);
+  const isChecked = cb.classList.contains('checked');
+  if (isChecked) { cb.classList.remove('checked'); lbl.classList.remove('checked'); obs.classList.remove('show'); }
+  else { cb.classList.add('checked'); lbl.classList.add('checked'); obs.classList.add('show'); document.getElementById(`obsval-${id}`).focus(); }
+  updateCatCount(); updateAffectedSummary();
+}
+
+function toggleCat(id) { document.getElementById(`cat-${id}`).classList.toggle('collapsed'); }
+
+function updateCatCount() {
+  CHECKLIST.forEach(cat => {
+    const checked = cat.items.filter(item => document.getElementById(`cb-${item.id}`)?.classList.contains('checked')).length;
+    const el = document.getElementById(`count-${cat.id}`);
+    if (el) { el.textContent = checked; el.style.color = checked > 0 ? 'var(--error)' : 'var(--accent)'; el.style.borderColor = checked > 0 ? 'rgba(240,80,96,.3)' : ''; el.style.background = checked > 0 ? 'rgba(240,80,96,.1)' : ''; }
+  });
+}
+
+function updateAffectedSummary() {
+  let total = 0;
+  CHECKLIST.forEach(cat => { cat.items.forEach(item => { if (document.getElementById(`cb-${item.id}`)?.classList.contains('checked')) total++; }); });
+  document.getElementById('affected-summary').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('affected-count').textContent = total;
+}
+
+function filterChecklist(type) {
+  ['all','fire','agua','robo'].forEach(t => { const btn = document.getElementById(`filter-${t}`); btn.className = 'filter-btn'; if (t === type) btn.classList.add(`active-${t}`); });
+  CHECKLIST.forEach(cat => {
+    let catVisible = 0;
+    cat.items.forEach(item => { const row = document.getElementById(`row-${item.id}`); const visible = type === 'all' || item.tags.includes(type); row.style.display = visible ? '' : 'none'; if (visible) catVisible++; });
+    const block = document.getElementById(`cat-${cat.id}`);
+    if (catVisible === 0) { block.style.display = 'none'; } else { block.style.display = ''; block.classList.remove('collapsed'); }
+  });
+}
+
+function getAffectedItems() {
+  const result = [];
+  CHECKLIST.forEach(cat => {
+    const catItems = [];
+    cat.items.forEach(item => { if (document.getElementById(`cb-${item.id}`)?.classList.contains('checked')) { const obs = document.getElementById(`obsval-${item.id}`)?.value.trim(); catItems.push({ label: item.label, obs }); } });
+    if (catItems.length) result.push({ cat: cat.name, items: catItems });
+  });
+  return result;
+}
+
+function navigate(dir) {
+  if (dir === 1 && !validateStep(currentStep)) return;
+  document.getElementById(`section-${currentStep}`).classList.remove('active');
+  currentStep += dir;
+  document.getElementById(`section-${currentStep}`).classList.add('active');
+  updateUI();
+  if (currentStep === totalSteps - 1) buildResumen();
+  window.scrollTo(0, 0);
+}
+
+function updateUI() {
+  for (let i = 0; i < totalSteps; i++) { const dot = document.getElementById(`dot-${i}`); dot.className = 'step-dot'; if (i < currentStep) dot.classList.add('done'); else if (i === currentStep) dot.classList.add('active'); }
+  document.getElementById('step-label').textContent = `Paso ${currentStep + 1} de ${totalSteps} — ${stepLabels[currentStep]}`;
+  document.getElementById('btn-back').style.display = currentStep > 0 ? 'flex' : 'none';
+  const isLast = currentStep === totalSteps - 1;
+  document.getElementById('btn-next').style.display = isLast ? 'none' : 'flex';
+  document.getElementById('btn-submit').style.display = isLast ? 'flex' : 'none';
+}
+
+function validateStep(step) {
+  const required = { 0: ['compania','asegurado','poliza','direccion'], 1: ['riesgo_reclamado','causa'], 2: ['atendidos_por','inspector_nombre','inspector_email'], 6: ['email_oficina'] };
+  const fields = required[step] || [];
+  for (const id of fields) { const el = document.getElementById(id); if (el && !el.value.trim()) { el.style.borderColor = 'var(--error)'; el.focus(); showToast('Completa los campos requeridos', true); setTimeout(() => el.style.borderColor = '', 2000); return false; } }
+  return true;
+}
+
+function addDetalle() {
+  detalleCount++;
+  const c = document.getElementById('detalles-container');
+  const d = document.createElement('div');
+  d.className = 'detalle-item'; d.id = `detalle-${detalleCount}`;
+  d.innerHTML = `<div class="detalle-num">PUNTO ${detalleCount}</div><textarea placeholder="Describe lo observado en este punto..." rows="3"></textarea>${detalleCount > 1 ? `<button class="btn-remove" onclick="removeDetalle(${detalleCount})">✕</button>` : ''}`;
+  c.appendChild(d);
+}
+function removeDetalle(id) { document.getElementById(`detalle-${id}`).remove(); }
+function getDetalles() { return Array.from(document.querySelectorAll('.detalle-item textarea')).map((t,i) => `${i+1}. ${t.value.trim()}`).filter(t => t.length > 3); }
+
+function handlePhotos(e) { Array.from(e.target.files).forEach(file => { const r = new FileReader(); r.onload = ev => { photos.push(ev.target.result); renderPhotos(); }; r.readAsDataURL(file); }); e.target.value = ''; }
+function renderPhotos() { const grid = document.getElementById('photo-grid'); grid.innerHTML = ''; photos.forEach((src,i) => { const d = document.createElement('div'); d.className = 'photo-thumb'; d.innerHTML = `<img src="${src}" alt="Foto ${i+1}"><button class="remove-photo" onclick="removePhoto(${i})">✕</button>`; grid.appendChild(d); }); }
+function removePhoto(i) { photos.splice(i,1); renderPhotos(); }
+
+function initCanvas() {
+  sigCanvas = document.getElementById('sig-canvas'); sigCtx = sigCanvas.getContext('2d');
+  const resize = () => { sigCanvas.width = sigCanvas.parentElement.clientWidth; sigCtx.strokeStyle = '#e8a020'; sigCtx.lineWidth = 2.5; sigCtx.lineCap = 'round'; sigCtx.lineJoin = 'round'; };
+  resize(); window.addEventListener('resize', resize);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.touches[0],r=sigCanvas.getBoundingClientRect(); isDrawing=true; [lastX,lastY]=[t.clientX-r.left,t.clientY-r.top]; },{passive:false});
+  sigCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!isDrawing)return; const t=e.touches[0],r=sigCanvas.getBoundingClientRect(),x=t.clientX-r.left,y=t.clientY-r.top; drawLine(lastX,lastY,x,y); [lastX,lastY]=[x,y]; },{passive:false});
+  sigCanvas.addEventListener('touchend', () => isDrawing=false);
+  sigCanvas.addEventListener('mousedown', e => { isDrawing=true; const r=sigCanvas.getBoundingClientRect(); [lastX,lastY]=[e.clientX-r.left,e.clientY-r.top]; });
+  sigCanvas.addEventListener('mousemove', e => { if(!isDrawing)return; const r=sigCanvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top; drawLine(lastX,lastY,x,y); [lastX,lastY]=[x,y]; });
+  sigCanvas.addEventListener('mouseup', () => isDrawing=false);
+  sigCanvas.addEventListener('mouseleave', () => isDrawing=false);
+}
+function drawLine(x1,y1,x2,y2) { sigCtx.beginPath(); sigCtx.moveTo(x1,y1); sigCtx.lineTo(x2,y2); sigCtx.stroke(); }
+function clearSig() { sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height); }
+function getSigData() { const d=sigCtx.getImageData(0,0,sigCanvas.width,sigCanvas.height).data; return d.some(v=>v!==0)?sigCanvas.toDataURL('image/png'):null; }
+
+function buildResumen() {
+  const g = id => (document.getElementById(id)?.value||'').trim()||'—';
+  const riesgo = g('riesgo_reclamado')==='Otro' ? g('riesgo_otro') : g('riesgo_reclamado');
+  const affected = getAffectedItems();
+  const detalles = getDetalles();
+  const affectedHtml = affected.length === 0 ? '<div class="resumen-row"><div class="resumen-key">Ítems</div><div class="resumen-val">Ninguno marcado</div></div>' : affected.map(cat => `<div class="resumen-row"><div class="resumen-key">${cat.cat}</div><div class="resumen-val affected">${cat.items.map(i=>i.label+(i.obs?' — '+i.obs:'')).join('<br>')}</div></div>`).join('');
+  document.getElementById('resumen-container').innerHTML = `
+    <div class="resumen-card"><div class="resumen-section-title">Datos Generales</div>${[['Aseguradora',g('compania')],['Asegurado',g('asegurado')],['Póliza',g('poliza')],['Dirección',g('direccion')],['Local',g('nombre_local')],['F. Asignación',g('fecha_asignacion')],['F. Inspección',g('fecha_inspeccion')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Siniestro</div>${[['Fecha/Hora',g('fecha_siniestro')],['Riesgo',riesgo],['Causa',g('causa')],['Reclamante',g('reclamante')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Inspector</div>${[['Atendido por',g('atendidos_por')],['Cargo',g('cargo')],['Teléfono',g('telefono')],['Inspector AIR',g('inspector_nombre')],['Email',g('inspector_email')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">⚠ Ítems Afectados (${affected.reduce((a,c)=>a+c.items.length,0)})</div>${affectedHtml}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Detalles</div>${detalles.length?detalles.map(d=>`<div class="resumen-row"><div class="resumen-val">${d}</div></div>`).join(''):'<div class="resumen-row"><div class="resumen-val">—</div></div>'}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Evidencia</div><div class="resumen-row"><div class="resumen-key">Fotos</div><div class="resumen-val">${photos.length} foto(s)</div></div><div class="resumen-row"><div class="resumen-key">Firma</div><div class="resumen-val">${getSigData()?'Registrada ✓':'No registrada'}</div></div></div>`;
+}
+
+async function submitForm() {
+  if (!validateStep(6)) return;
+  const g = id => (document.getElementById(id)?.value||'').trim();
+  const riesgo = g('riesgo_reclamado')==='Otro' ? g('riesgo_otro') : g('riesgo_reclamado');
+  const detalles = getDetalles().join('\n');
+  const affected = getAffectedItems();
+  const sigData = getSigData();
+  const oficina = g('email_oficina');
+  const inspector_email = g('inspector_email');
+  document.getElementById('spinner').classList.add('show');
+  document.getElementById('submit-label').textContent = 'Generando...';
+  document.getElementById('btn-submit').disabled = true;
+  downloadReport(g, riesgo, detalles, affected, sigData, inspector_email);
+  const subject = encodeURIComponent(`Informe de Inspección – ${g('asegurado')} – ${g('poliza')}`);
+  const affectedText = affected.length ? affected.map(c=>`[${c.cat}]\n${c.items.map(i=>` • ${i.label}${i.obs?' — '+i.obs:''}`).join('\n')}`).join('\n') : '(Sin ítems afectados)';
+  const body = encodeURIComponent(`INFORME DE INSPECCIÓN – AIR AJUSTADORES\n==========================================\nAseguradora: ${g('compania')}\nAsegurado: ${g('asegurado')}\nPóliza: ${g('poliza')}\nDirección: ${g('direccion')}\nF. Inspección: ${g('fecha_inspeccion')}\n\nSINIESTRO\nRiesgo: ${riesgo}\nCausa: ${g('causa')}\nReclamante: ${g('reclamante')||'—'}\n\nINSPECTOR\nAtendido por: ${g('atendidos_por')} | ${g('cargo')||'—'}\nInspector AIR: ${g('inspector_nombre')}\n\nÍTEMS AFECTADOS\n${affectedText}\n\nDETALLES\n${detalles||'(Sin detalles)'}\n\nFotos: ${photos.length}\n---\nEnviado desde App AIR Ajustadores`);
+  const to = encodeURIComponent([oficina, inspector_email].filter(Boolean).join(','));
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+  setTimeout(() => { document.getElementById('spinner').classList.remove('show'); document.getElementById('submit-label').textContent = '✓ Listo'; document.getElementById('btn-submit').style.background = 'var(--success)'; showToast('¡Informe generado! ✓'); }, 1500);
+}
+
+function downloadReport(g, riesgo, detalles, affected, sigData, inspector_email) {
+  const fecha = new Date().toLocaleString('es-PA', {dateStyle:'full',timeStyle:'short'});
+  const affectedRowsHtml = affected.length === 0 ? '<tr><td colspan="2" style="color:#999;font-style:italic">Ningún ítem marcado</td></tr>' : affected.map(cat=>`<tr><td colspan="2" style="background:#fef9f0;font-weight:700;color:#c87020;padding:8px 12px;font-size:12px;text-transform:uppercase">${cat.cat}</td></tr>${cat.items.map(i=>`<tr><td style="padding-left:24px">• ${i.label}</td><td style="color:#666">${i.obs||'—'}</td></tr>`).join('')}`).join('');
+<script>
+const CHECKLIST = [
+  { id: 'estructural', icon: '🏗', name: 'Estructura', items: [
+    { id: 'techo_losa', label: 'Techo / Losa', tags: ['fire','agua'] },
+    { id: 'techo_cielo', label: 'Cielo raso / Plafón', tags: ['fire','agua'] },
+    { id: 'paredes_ext', label: 'Paredes exteriores', tags: ['fire','agua','robo'] },
+    { id: 'paredes_int', label: 'Paredes interiores / Tabiques', tags: ['fire','agua'] },
+    { id: 'columnas_vigas', label: 'Columnas / Vigas', tags: ['fire'] },
+    { id: 'puertas_ext', label: 'Puertas exteriores', tags: ['fire','robo'] },
+    { id: 'puertas_int', label: 'Puertas interiores', tags: ['fire','robo'] },
+    { id: 'ventanas', label: 'Ventanas / Marcos', tags: ['fire','agua','robo'] },
+    { id: 'vidrios', label: 'Vidrios / Cristales', tags: ['fire','robo'] },
+    { id: 'escaleras', label: 'Escaleras', tags: ['fire','agua'] },
+    { id: 'verjas_rejas', label: 'Verjas / Rejas de seguridad', tags: ['robo'] },
+    { id: 'candados', label: 'Candados / Cerraduras forzadas', tags: ['robo'] }
+  ]},
+  { id: 'acabados', icon: '🪟', name: 'Acabados y Revestimientos', items: [
+    { id: 'pisos_ceramica', label: 'Pisos (cerámica / porcelana)', tags: ['fire','agua'] },
+    { id: 'pisos_madera', label: 'Pisos (madera / laminado)', tags: ['fire','agua'] },
+    { id: 'pisos_vinilo', label: 'Pisos (vinilo / alfombra)', tags: ['fire','agua'] },
+    { id: 'pintura_int', label: 'Pintura interior', tags: ['fire','agua'] },
+    { id: 'pintura_ext', label: 'Pintura exterior', tags: ['fire','agua'] },
+    { id: 'enchapes', label: 'Enchapes / Azulejos', tags: ['fire','agua'] },
+    { id: 'zocalos', label: 'Zócalos / Molduras', tags: ['fire','agua'] },
+    { id: 'fascia', label: 'Fascia / Canales de techo', tags: ['agua'] }
+  ]},
+  { id: 'instalaciones', icon: '⚡', name: 'Instalaciones', items: [
+    { id: 'elect_panel', label: 'Panel / Breakers eléctricos', tags: ['fire','agua'] },
+    { id: 'elect_cableado', label: 'Cableado eléctrico', tags: ['fire','agua'] },
+    { id: 'elect_tomacorr', label: 'Tomacorrientes / Apagadores', tags: ['fire','agua'] },
+    { id: 'elect_luminaria', label: 'Luminarias / Lámparas', tags: ['fire','agua','robo'] },
+    { id: 'plomeria_tuber', label: 'Tuberías / Plomería', tags: ['agua'] },
+    { id: 'plomeria_sanit', label: 'Sanitarios / Lavamanos', tags: ['agua'] },
+    { id: 'plomeria_cist', label: 'Cisterna / Tanque de agua', tags: ['agua'] },
+    { id: 'ac_equipos', label: 'Equipos de A/C', tags: ['fire','agua','robo'] },
+    { id: 'ac_ductos', label: 'Ductos de A/C / Ventilación', tags: ['fire','agua'] },
+    { id: 'gas_tuberias', label: 'Tuberías de gas', tags: ['fire'] },
+    { id: 'alarma', label: 'Sistema de alarma / CCTV', tags: ['fire','robo'] },
+    { id: 'sprinklers', label: 'Rociadores / Sprinklers', tags: ['fire'] }
+  ]},
+  { id: 'mobiliario', icon: '🪑', name: 'Mobiliario y Contenido', items: [
+    { id: 'muebles_sala', label: 'Muebles de sala / Recepción', tags: ['fire','agua','robo'] },
+    { id: 'muebles_ofic', label: 'Mobiliario de oficina / Escritorios', tags: ['fire','agua','robo'] },
+    { id: 'equipos_comp', label: 'Computadoras / Equipos de cómputo', tags: ['fire','agua','robo'] },
+    { id: 'equipos_elec', label: 'Electrodomésticos / Equipos', tags: ['fire','agua','robo'] },
+    { id: 'equipos_cocina', label: 'Equipo de cocina / Restaurante', tags: ['fire','agua','robo'] },
+    { id: 'inventario', label: 'Inventario / Mercancía', tags: ['fire','agua','robo'] },
+    { id: 'caja_valores', label: 'Caja fuerte / Valores', tags: ['robo'] },
+    { id: 'documentos', label: 'Documentos / Archivos', tags: ['fire','agua','robo'] },
+    { id: 'ropa_textiles', label: 'Ropa / Textiles', tags: ['fire','agua','robo'] },
+    { id: 'obras_arte', label: 'Obras de arte / Decoración valiosa', tags: ['fire','agua','robo'] }
+  ]},
+  { id: 'exteriores', icon: '🌳', name: 'Áreas Exteriores', items: [
+    { id: 'ext_cerca', label: 'Cerca / Muro perimetral', tags: ['robo'] },
+    { id: 'ext_porton', label: 'Portón / Acceso vehicular', tags: ['robo'] },
+    { id: 'ext_garaje', label: 'Garaje / Estacionamiento', tags: ['fire','agua'] },
+    { id: 'ext_jardin', label: 'Jardines / Áreas verdes', tags: ['agua'] },
+    { id: 'ext_letrero', label: 'Letrero / Rótulo comercial', tags: ['fire','robo'] },
+    { id: 'ext_tanque', label: 'Tanque de gas / Depósitos ext.', tags: ['fire'] }
+  ]}
+];
+
+let currentStep = 0;
+const totalSteps = 7;
+let photos = [];
+let detalleCount = 0;
+let sigCanvas, sigCtx, isDrawing = false, lastX = 0, lastY = 0;
+const stepLabels = ['Datos Generales','Datos del Siniestro','Inspector / Contacto','Checklist de Daños','Detalles de Inspección','Evidencia y Firma','Revisar y Enviar'];
+
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha_inspeccion').value = today;
+  document.getElementById('fecha_asignacion').value = today;
+  buildChecklist();
+  addDetalle(); addDetalle(); addDetalle();
+  initCanvas();
+  document.getElementById('photo-input').addEventListener('change', handlePhotos);
+  document.getElementById('riesgo_reclamado').addEventListener('change', function() {
+    document.getElementById('riesgo-otro-wrap').style.display = this.value === 'Otro' ? 'block' : 'none';
+  });
+});
+
+function buildChecklist() {
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+  CHECKLIST.forEach(cat => {
+    const block = document.createElement('div');
+    block.className = 'cat-block';
+    block.id = `cat-${cat.id}`;
+    block.innerHTML = `
+      <div class="cat-header" onclick="toggleCat('${cat.id}')">
+        <span class="cat-icon">${cat.icon}</span>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-count" id="count-${cat.id}">0</span>
+        <span class="cat-chevron">▾</span>
+      </div>
+      <div class="cat-items" id="items-${cat.id}">
+        ${cat.items.map(item => `
+          <div class="check-row" id="row-${item.id}" data-tags="${item.tags.join(',')}">
+            <div class="check-box" id="cb-${item.id}" onclick="toggleCheck('${item.id}')"></div>
+            <div class="check-content">
+              <div class="check-label" id="lbl-${item.id}" onclick="toggleCheck('${item.id}')">${item.label}</div>
+              <div class="check-tags">
+                ${item.tags.includes('fire') ? '<span class="tag tag-fire">🔥 Incendio</span>' : ''}
+                ${item.tags.includes('agua') ? '<span class="tag tag-agua">💧 Agua</span>' : ''}
+                ${item.tags.includes('robo') ? '<span class="tag tag-robo">🔓 Robo</span>' : ''}
+              </div>
+              <div class="check-obs" id="obs-${item.id}">
+                <input type="text" placeholder="Observación (opcional)..." id="obsval-${item.id}">
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    container.appendChild(block);
+  });
+}
+
+function toggleCheck(id) {
+  const cb = document.getElementById(`cb-${id}`);
+  const lbl = document.getElementById(`lbl-${id}`);
+  const obs = document.getElementById(`obs-${id}`);
+  const isChecked = cb.classList.contains('checked');
+  if (isChecked) { cb.classList.remove('checked'); lbl.classList.remove('checked'); obs.classList.remove('show'); }
+  else { cb.classList.add('checked'); lbl.classList.add('checked'); obs.classList.add('show'); document.getElementById(`obsval-${id}`).focus(); }
+  updateCatCount(); updateAffectedSummary();
+}
+
+function toggleCat(id) { document.getElementById(`cat-${id}`).classList.toggle('collapsed'); }
+
+function updateCatCount() {
+  CHECKLIST.forEach(cat => {
+    const checked = cat.items.filter(item => document.getElementById(`cb-${item.id}`)?.classList.contains('checked')).length;
+    const el = document.getElementById(`count-${cat.id}`);
+    if (el) { el.textContent = checked; el.style.color = checked > 0 ? 'var(--error)' : 'var(--accent)'; el.style.borderColor = checked > 0 ? 'rgba(240,80,96,.3)' : ''; el.style.background = checked > 0 ? 'rgba(240,80,96,.1)' : ''; }
+  });
+}
+
+function updateAffectedSummary() {
+  let total = 0;
+  CHECKLIST.forEach(cat => { cat.items.forEach(item => { if (document.getElementById(`cb-${item.id}`)?.classList.contains('checked')) total++; }); });
+  document.getElementById('affected-summary').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('affected-count').textContent = total;
+}
+
+function filterChecklist(type) {
+  ['all','fire','agua','robo'].forEach(t => { const btn = document.getElementById(`filter-${t}`); btn.className = 'filter-btn'; if (t === type) btn.classList.add(`active-${t}`); });
+  CHECKLIST.forEach(cat => {
+    let catVisible = 0;
+    cat.items.forEach(item => { const row = document.getElementById(`row-${item.id}`); const visible = type === 'all' || item.tags.includes(type); row.style.display = visible ? '' : 'none'; if (visible) catVisible++; });
+    const block = document.getElementById(`cat-${cat.id}`);
+    if (catVisible === 0) { block.style.display = 'none'; } else { block.style.display = ''; block.classList.remove('collapsed'); }
+  });
+}
+
+function getAffectedItems() {
+  const result = [];
+  CHECKLIST.forEach(cat => {
+    const catItems = [];
+    cat.items.forEach(item => { if (document.getElementById(`cb-${item.id}`)?.classList.contains('checked')) { const obs = document.getElementById(`obsval-${item.id}`)?.value.trim(); catItems.push({ label: item.label, obs }); } });
+    if (catItems.length) result.push({ cat: cat.name, items: catItems });
+  });
+  return result;
+}
+
+function navigate(dir) {
+  if (dir === 1 && !validateStep(currentStep)) return;
+  document.getElementById(`section-${currentStep}`).classList.remove('active');
+  currentStep += dir;
+  document.getElementById(`section-${currentStep}`).classList.add('active');
+  updateUI();
+  if (currentStep === totalSteps - 1) buildResumen();
+  window.scrollTo(0, 0);
+}
+
+function updateUI() {
+  for (let i = 0; i < totalSteps; i++) { const dot = document.getElementById(`dot-${i}`); dot.className = 'step-dot'; if (i < currentStep) dot.classList.add('done'); else if (i === currentStep) dot.classList.add('active'); }
+  document.getElementById('step-label').textContent = `Paso ${currentStep + 1} de ${totalSteps} — ${stepLabels[currentStep]}`;
+  document.getElementById('btn-back').style.display = currentStep > 0 ? 'flex' : 'none';
+  const isLast = currentStep === totalSteps - 1;
+  document.getElementById('btn-next').style.display = isLast ? 'none' : 'flex';
+  document.getElementById('btn-submit').style.display = isLast ? 'flex' : 'none';
+}
+
+function validateStep(step) {
+  const required = { 0: ['compania','asegurado','poliza','direccion'], 1: ['riesgo_reclamado','causa'], 2: ['atendidos_por','inspector_nombre','inspector_email'], 6: ['email_oficina'] };
+  const fields = required[step] || [];
+  for (const id of fields) { const el = document.getElementById(id); if (el && !el.value.trim()) { el.style.borderColor = 'var(--error)'; el.focus(); showToast('Completa los campos requeridos', true); setTimeout(() => el.style.borderColor = '', 2000); return false; } }
+  return true;
+}
+
+function addDetalle() {
+  detalleCount++;
+  const c = document.getElementById('detalles-container');
+  const d = document.createElement('div');
+  d.className = 'detalle-item'; d.id = `detalle-${detalleCount}`;
+  d.innerHTML = `<div class="detalle-num">PUNTO ${detalleCount}</div><textarea placeholder="Describe lo observado en este punto..." rows="3"></textarea>${detalleCount > 1 ? `<button class="btn-remove" onclick="removeDetalle(${detalleCount})">✕</button>` : ''}`;
+  c.appendChild(d);
+}
+function removeDetalle(id) { document.getElementById(`detalle-${id}`).remove(); }
+function getDetalles() { return Array.from(document.querySelectorAll('.detalle-item textarea')).map((t,i) => `${i+1}. ${t.value.trim()}`).filter(t => t.length > 3); }
+
+function handlePhotos(e) { Array.from(e.target.files).forEach(file => { const r = new FileReader(); r.onload = ev => { photos.push(ev.target.result); renderPhotos(); }; r.readAsDataURL(file); }); e.target.value = ''; }
+function renderPhotos() { const grid = document.getElementById('photo-grid'); grid.innerHTML = ''; photos.forEach((src,i) => { const d = document.createElement('div'); d.className = 'photo-thumb'; d.innerHTML = `<img src="${src}" alt="Foto ${i+1}"><button class="remove-photo" onclick="removePhoto(${i})">✕</button>`; grid.appendChild(d); }); }
+function removePhoto(i) { photos.splice(i,1); renderPhotos(); }
+
+function initCanvas() {
+  sigCanvas = document.getElementById('sig-canvas'); sigCtx = sigCanvas.getContext('2d');
+  const resize = () => { sigCanvas.width = sigCanvas.parentElement.clientWidth; sigCtx.strokeStyle = '#e8a020'; sigCtx.lineWidth = 2.5; sigCtx.lineCap = 'round'; sigCtx.lineJoin = 'round'; };
+  resize(); window.addEventListener('resize', resize);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.touches[0],r=sigCanvas.getBoundingClientRect(); isDrawing=true; [lastX,lastY]=[t.clientX-r.left,t.clientY-r.top]; },{passive:false});
+  sigCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!isDrawing)return; const t=e.touches[0],r=sigCanvas.getBoundingClientRect(),x=t.clientX-r.left,y=t.clientY-r.top; drawLine(lastX,lastY,x,y); [lastX,lastY]=[x,y]; },{passive:false});
+  sigCanvas.addEventListener('touchend', () => isDrawing=false);
+  sigCanvas.addEventListener('mousedown', e => { isDrawing=true; const r=sigCanvas.getBoundingClientRect(); [lastX,lastY]=[e.clientX-r.left,e.clientY-r.top]; });
+  sigCanvas.addEventListener('mousemove', e => { if(!isDrawing)return; const r=sigCanvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top; drawLine(lastX,lastY,x,y); [lastX,lastY]=[x,y]; });
+  sigCanvas.addEventListener('mouseup', () => isDrawing=false);
+  sigCanvas.addEventListener('mouseleave', () => isDrawing=false);
+}
+function drawLine(x1,y1,x2,y2) { sigCtx.beginPath(); sigCtx.moveTo(x1,y1); sigCtx.lineTo(x2,y2); sigCtx.stroke(); }
+function clearSig() { sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height); }
+function getSigData() { const d=sigCtx.getImageData(0,0,sigCanvas.width,sigCanvas.height).data; return d.some(v=>v!==0)?sigCanvas.toDataURL('image/png'):null; }
+
+function buildResumen() {
+  const g = id => (document.getElementById(id)?.value||'').trim()||'—';
+  const riesgo = g('riesgo_reclamado')==='Otro' ? g('riesgo_otro') : g('riesgo_reclamado');
+  const affected = getAffectedItems();
+  const detalles = getDetalles();
+  const affectedHtml = affected.length === 0 ? '<div class="resumen-row"><div class="resumen-key">Ítems</div><div class="resumen-val">Ninguno marcado</div></div>' : affected.map(cat => `<div class="resumen-row"><div class="resumen-key">${cat.cat}</div><div class="resumen-val affected">${cat.items.map(i=>i.label+(i.obs?' — '+i.obs:'')).join('<br>')}</div></div>`).join('');
+  document.getElementById('resumen-container').innerHTML = `
+    <div class="resumen-card"><div class="resumen-section-title">Datos Generales</div>${[['Aseguradora',g('compania')],['Asegurado',g('asegurado')],['Póliza',g('poliza')],['Dirección',g('direccion')],['Local',g('nombre_local')],['F. Asignación',g('fecha_asignacion')],['F. Inspección',g('fecha_inspeccion')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Siniestro</div>${[['Fecha/Hora',g('fecha_siniestro')],['Riesgo',riesgo],['Causa',g('causa')],['Reclamante',g('reclamante')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Inspector</div>${[['Atendido por',g('atendidos_por')],['Cargo',g('cargo')],['Teléfono',g('telefono')],['Inspector AIR',g('inspector_nombre')],['Email',g('inspector_email')]].map(([k,v])=>`<div class="resumen-row"><div class="resumen-key">${k}</div><div class="resumen-val">${v}</div></div>`).join('')}</div>
+    <div class="resumen-card"><div class="resumen-section-title">⚠ Ítems Afectados (${affected.reduce((a,c)=>a+c.items.length,0)})</div>${affectedHtml}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Detalles</div>${detalles.length?detalles.map(d=>`<div class="resumen-row"><div class="resumen-val">${d}</div></div>`).join(''):'<div class="resumen-row"><div class="resumen-val">—</div></div>'}</div>
+    <div class="resumen-card"><div class="resumen-section-title">Evidencia</div><div class="resumen-row"><div class="resumen-key">Fotos</div><div class="resumen-val">${photos.length} foto(s)</div></div><div class="resumen-row"><div class="resumen-key">Firma</div><div class="resumen-val">${getSigData()?'Registrada ✓':'No registrada'}</div></div></div>`;
+}
+
+async function submitForm() {
+  if (!validateStep(6)) return;
+  const g = id => (document.getElementById(id)?.value||'').trim();
+  const riesgo = g('riesgo_reclamado')==='Otro' ? g('riesgo_otro') : g('riesgo_reclamado');
+  const detalles = getDetalles().join('\n');
+  const affected = getAffectedItems();
+  const sigData = getSigData();
+  const oficina = g('email_oficina');
